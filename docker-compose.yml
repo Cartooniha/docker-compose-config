@@ -1,0 +1,82 @@
+version: '3'
+
+services:
+  front-react:
+    image: car-front
+    container_name: front-react
+    networks:
+      - app-network
+    restart: always
+  nodejs:
+    image: car-back
+    container_name: node-back
+    environment:
+      - DB_HOST=mysql_db_service
+      - DB_NAME=cartooniha
+      - DB_USER=root
+      - DB_PASS=68IcdS
+    depends_on:
+      - mysql_db_service
+    ports:
+      - "90:2000"
+    command: ./share/wait-for-it.sh mysql_db_service:3307 -- npm run start:prod
+    volumes:
+      - ./share:/root/node/share
+    networks:
+      - app-network
+    restart: always
+  admin_php5apache:
+    image: admin-php5-apache
+    container_name: admin-php5-apache
+    depends_on:
+      - mysql_db_service
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    restart: always
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      - PMA_HOST=mysql_db_service
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=68IcdS
+    depends_on:
+      - mysql_db_service
+    ports:
+      - "8081:80"
+    networks:
+      - app-network
+    restart: always
+  mysql_db_service:
+    image: mysql
+    ports:
+      - "3307:3306"
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./mysql-dum:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_DATABASE: cartooniha
+      MYSQL_ROOT_PASSWORD: 68IcdS
+    networks:
+      - app-network
+    restart: always
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx-conf.d:/etc/nginx/conf.d
+    networks:
+      - app-network
+    restart: always
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+  node_modules:
